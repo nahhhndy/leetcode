@@ -1,0 +1,86 @@
+class Solution:
+    def longestRepeating(self, s: str, queryCharacters: str, queryIndices: list[int]) -> list[int]:
+        
+        n = len(s)
+
+        # Each node:
+        # [left_char, right_char, prefix, suffix, best, length]
+        tree = [None] * (4 * n)
+
+        def merge(a, b):
+            if a is None:
+                return b
+            if b is None:
+                return a
+
+            left_char = a[0]
+            right_char = b[1]
+
+            prefix = a[2]
+            suffix = b[3]
+            best = max(a[4], b[4])
+            length = a[5] + b[5]
+
+            # Can join the suffix of left with
+            # the prefix of right
+            if a[1] == b[0]:
+                best = max(best, a[3] + b[2])
+
+                # Entire left part is the same character
+                if a[2] == a[5]:
+                    prefix = a[5] + b[2]
+
+                # Entire right part is the same character
+                if b[3] == b[5]:
+                    suffix = b[5] + a[3]
+
+            return (
+                left_char,
+                right_char,
+                prefix,
+                suffix,
+                best,
+                length
+            )
+
+        def build(node, l, r):
+            if l == r:
+                tree[node] = (s[l], s[l], 1, 1, 1, 1)
+                return
+
+            mid = (l + r) // 2
+
+            build(node * 2, l, mid)
+            build(node * 2 + 1, mid + 1, r)
+
+            tree[node] = merge(
+                tree[node * 2],
+                tree[node * 2 + 1]
+            )
+
+        def update(node, l, r, pos, char):
+            if l == r:
+                tree[node] = (char, char, 1, 1, 1, 1)
+                return
+
+            mid = (l + r) // 2
+
+            if pos <= mid:
+                update(node * 2, l, mid, pos, char)
+            else:
+                update(node * 2 + 1, mid + 1, r, pos, char)
+
+            tree[node] = merge(
+                tree[node * 2],
+                tree[node * 2 + 1]
+            )
+
+        build(1, 0, n - 1)
+
+        ans = []
+
+        for char, index in zip(queryCharacters, queryIndices):
+            update(1, 0, n - 1, index, char)
+            ans.append(tree[1][4])
+
+        return ans
